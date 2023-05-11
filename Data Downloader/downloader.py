@@ -152,8 +152,17 @@ for rank in ranks:
             # if there isn't more data, we can break
             # if not more_data:
             #     break
-        if not stop_flag:
-            f.write('\n')
+        else:
+            continue
+            
+        break
+    else:
+        continue
+
+    if not stop_flag:
+        f.write('\n')
+    break
+
 if not stop_flag:
     f.close()
 
