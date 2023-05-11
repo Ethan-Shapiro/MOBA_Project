@@ -18,7 +18,7 @@ from pynput import keyboard
 # %%
 API_KEY = os.getenv('RIOT_API_KEY')
 EXPECTED_SUMMONERS_OUT = 205
-API_KEY = 'RGAPI-614f434b-c4cc-4799-9af2-08ff81844f61'
+API_KEY = 'RGAPI-67d9f354-db66-4101-81a4-92c294584bb7'
 lol_watcher = LolWatcher(API_KEY)
 
 
@@ -54,27 +54,32 @@ def get_summoner_ids(region: str, rank: str, division: str, start_page: int, num
     for page_num in range(start_page, start_page+num_pages+1):
         try:
             # attempt to get a response
-            response = lol_watcher.league.entries(region, 'RANKED_SOLO_5x5', rank, division, page_num)
+            response = lol_watcher.league.entries(
+                region, 'RANKED_SOLO_5x5', rank, division, page_num)
 
             # if we don't get the expected number of summoners, we have probably reached the end of the catalog
-            # in another way, there are no more players in the rank and divison to get 
-            if len(response) < EXPECTED_SUMMONERS_OUT:
+            # in another way, there are no more players in the rank and divison to get
+            if len(response) <= 0:
                 more_summoners = False
-                
+
             for summoner in response:
                 # We only take people with greater than or equal to 20 combined wins and losses
                 if summoner['wins'] + summoner['losses'] >= 20:
-                    df = pd.concat([df, pd.DataFrame.from_records(summoner, index=[0])], ignore_index=True)
+                    df = pd.concat([df, pd.DataFrame.from_records(
+                        summoner, index=[0])], ignore_index=True)
         except ApiError as err:
             print(err)
-            print(f'Failed at page number: {page_num}\nFailed at rank and division: {rank} {division}')
+            print(
+                f'Failed at page number: {page_num}\nFailed at rank and division: {rank} {division}')
             return df, False
 
     return df, more_summoners
 
 # %%
+
+
 def write_to_parquet(df: DataFrame) -> str:
-    DIRECTORY_PATH = '/Users/ethanshapiro/Repository/MOBA Recommender and Prediction/data/raw_data/'
+    DIRECTORY_PATH = 'C:/Repository/MOBA_Project/data/raw_data/'
     date_str = str(datetime.datetime.today()).split()[0]
     file_name = f'summoner_data_{df.loc[0, "tier"]}_{df.loc[0, "rank"]}.parquet'
     file_path = DIRECTORY_PATH + file_name
@@ -83,16 +88,19 @@ def write_to_parquet(df: DataFrame) -> str:
         print(f'Creating {file_name}')
         write(file_path, df)
     else:
-        
+
         print(f'Appending to {file_name}')
         write(file_path, df, append=True)
     return file_path
+
 
 # %%
 # Flag to check if the user wants to stop the code
 stop_flag = False
 
 # Function to handle the key press event
+
+
 def on_press(key):
     global stop_flag
     print(key)
@@ -104,6 +112,7 @@ def on_press(key):
             return False
     except AttributeError:
         pass
+
 
 # %%
 regions = ['na1']
@@ -117,7 +126,7 @@ max_pages = 1_000
 first_page = 21
 
 # txt file to save how far we got for each rank
-f = open('/Users/ethanshapiro/Repository/MOBA Recommender and Prediction/data/raw_data/progress.txt', 'w+')
+f = open('C:/Repository/MOBA_Project/data/raw_data/progress.txt', 'w+')
 
 # Create a listener for key press events
 listener = keyboard.Listener(on_press=on_press)
@@ -140,35 +149,29 @@ for rank in ranks:
                 break
 
             # get the summoner id data
-            # df, more_data = get_summoner_ids('na1', rank, tier, start_page, page_increments)
-            
+            df, more_data = get_summoner_ids('na1', rank, tier, start_page, page_increments)
+
             # # save to the parquet
-            # fp = write_to_parquet(df)
-            time.sleep(1)
+            fp = write_to_parquet(df)
 
             # write the current page we completed
             f.write(str(start_page) + ', ')
 
             # if there isn't more data, we can break
-            # if not more_data:
-            #     break
-        else:
-            continue
-            
+            if not more_data:
+                break
+
+        if stop_flag:
+            break
+
+    if stop_flag:
         break
-    else:
-        continue
 
     if not stop_flag:
         f.write('\n')
-    break
 
 if not stop_flag:
     f.close()
 
 
-
 # %%
-
-
-
