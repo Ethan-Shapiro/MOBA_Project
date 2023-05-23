@@ -18,7 +18,7 @@ from pynput import keyboard
 # %%
 API_KEY = os.getenv('RIOT_API_KEY')
 EXPECTED_SUMMONERS_OUT = 205
-API_KEY = 'RGAPI-67d9f354-db66-4101-81a4-92c294584bb7'
+API_KEY = 'RGAPI-66e88838-f097-4e87-ae8b-d8a700363e3c'
 lol_watcher = LolWatcher(API_KEY)
 
 
@@ -78,8 +78,8 @@ def get_summoner_ids(region: str, rank: str, division: str, start_page: int, num
 # %%
 
 
-def write_to_parquet(df: DataFrame) -> str:
-    DIRECTORY_PATH = 'C:/Repository/MOBA_Project/data/raw_data/'
+def write_to_parquet(df: DataFrame, dir_name: str) -> str:
+    DIRECTORY_PATH = f'C:/Repository/MOBA_Project/data/summoner/{dir_name}/'
     date_str = str(datetime.datetime.today()).split()[0]
     file_name = f'summoner_data_{df.loc[0, "tier"]}_{df.loc[0, "rank"]}.parquet'
     file_path = DIRECTORY_PATH + file_name
@@ -115,55 +115,65 @@ def on_press(key):
 
 
 # %%
-regions = ['na1']
-ranks = ['DIAMOND', 'PLATINUM']
-tiers = ['I', 'II', 'III', 'IV']
+regions = ['euw1']
+ranks = ['PLATINUM']
+tiers = ['IV']
+
+# d2 - 18 .
+# d3 - 72
+# d4 - 6
+# p2 - 31
+# p3 - 159
+# p4 - 93
 
 # %%
 # get pages 1 to 10,000
 page_increments = 20
 max_pages = 1_000
-first_page = 21
+first_page = 372
 
 # txt file to save how far we got for each rank
-f = open('C:/Repository/MOBA_Project/data/raw_data/progress.txt', 'w+')
+f = open('C:/Repository/MOBA_Project/data/summoner/euw1/progress.txt', 'w+')
 
 # Create a listener for key press events
 listener = keyboard.Listener(on_press=on_press)
 
 # Start listening for key presses
 listener.start()
+for region in regions:
+    for rank in ranks:
+        f.write(rank + '\n')
+        for tier in tiers:
+            f.write(tier + ': ')
+            for start_page in range(first_page, max_pages + 1, page_increments):
+                # Check if the stop flag is True
+                if stop_flag:
+                    # Close the file
+                    f.close()
+                    # Stop the listener
+                    listener.stop()
+                    # Exit the loop and stop the code
+                    break
 
-for rank in ranks:
-    f.write(rank + '\n')
-    for tier in tiers:
-        f.write(tier + ': ')
-        for start_page in range(first_page, max_pages + 1, page_increments):
-            # Check if the stop flag is True
+                # get the summoner id data
+                df, more_data = get_summoner_ids(region, rank, tier, start_page, page_increments)
+
+                # # save to the parquet
+                fp = write_to_parquet(df, region)
+
+                # write the current page we completed
+                f.write(str(start_page) + ', ')
+
+                # if there isn't more data, we can break
+                if not more_data:
+                    break
+
             if stop_flag:
-                # Close the file
-                f.close()
-                # Stop the listener
-                listener.stop()
-                # Exit the loop and stop the code
                 break
-
-            # get the summoner id data
-            df, more_data = get_summoner_ids('na1', rank, tier, start_page, page_increments)
-
-            # # save to the parquet
-            fp = write_to_parquet(df)
-
-            # write the current page we completed
-            f.write(str(start_page) + ', ')
-
-            # if there isn't more data, we can break
-            if not more_data:
-                break
+            f.write('\n')
 
         if stop_flag:
             break
-
     if stop_flag:
         break
 
