@@ -22,13 +22,14 @@ warnings.warn = warn
 
 def main(sys_argv: List[str] = None):
     # Parser
+    print(sys_argv)
     if sys_argv is None:
         sys_argv = sys.argv[1:]
     configs = Parser(sys_argv).parse()
     args = DotMap(configs, _dynamic=False)
         
     # Dataset
-    print('[Start loading the dataset]')
+    print('[Start loading pytho dataset]')
     dataset_path = args.local_data_folder + '/' + args.dataset_type
 
     match_df = {}
